@@ -1,53 +1,61 @@
 /*
-  Fake login + DEBUG log cho Shadowrocket
+  STRICT login fake
+  - Chỉ chạy khi POST + có userName
+  - Lấy đúng username từ payload
 */
 
-console.log("====== FAKE LOGIN SCRIPT TRIGGERED ======");
+if ($request.method !== "POST") {
+  $done({});
+  return;
+}
 
-// Log request cơ bản
-console.log("URL:", $request.url);
-console.log("METHOD:", $request.method);
-
-// Log headers
-console.log("HEADERS:", JSON.stringify($request.headers, null, 2));
-
-// Log body gốc
 let body = $request.body || "";
-console.log("RAW BODY:", body);
+if (!body) {
+  $done({});
+  return;
+}
 
-let username = "";
+let username = null;
 
-// 1️⃣ Thử parse JSON
+// ====== 1️⃣ JSON payload ======
 try {
   let json = JSON.parse(body);
-  console.log("BODY JSON:", JSON.stringify(json, null, 2));
 
-  if (json.userName) {
-    username = json.userName;
-    console.log("USERNAME FOUND (JSON):", username);
-  }
+  // duyệt nhiều key phổ biến
+  username =
+    json.userName ||
+    json.username ||
+    json.user_name ||
+    (json.data && (json.data.userName || json.data.username));
+
 } catch (e) {
-  console.log("BODY NOT JSON, TRY FORM DATA");
-
-  // 2️⃣ Parse x-www-form-urlencoded
+  // ====== 2️⃣ x-www-form-urlencoded ======
   let params = body.split("&");
   for (let p of params) {
     let [key, value] = p.split("=");
-    if (key === "userName") {
-      username = decodeURIComponent(value || "");
-      console.log("USERNAME FOUND (FORM):", username);
+    if (!key || !value) continue;
+
+    let k = key.toLowerCase();
+    if (k === "username" || k === "username" || k === "user_name") {
+      username = decodeURIComponent(value);
       break;
     }
   }
 }
 
-// Nếu vẫn không có
+// ❌ Không có username → không fake
 if (!username) {
-  console.log("⚠️ USERNAME NOT FOUND IN PAYLOAD");
+  $done({});
+  return;
 }
 
-// Response giả
-let responseBody = {
+// ====== LOG CHÍNH XÁC ======
+console.log("🎯 LOGIN MATCHED");
+console.log("URL:", $request.url);
+console.log("USERNAME:", username);
+
+// ====== RESPONSE GIẢ ======
+let fakeResponse = {
   code: 0,
   msg: "login ok",
   data: {
@@ -55,12 +63,10 @@ let responseBody = {
   }
 };
 
-console.log("FAKE RESPONSE:", JSON.stringify(responseBody, null, 2));
-
 $done({
   status: 200,
   headers: {
     "Content-Type": "application/json"
   },
-  body: JSON.stringify(responseBody)
+  body: JSON.stringify(fakeResponse)
 });
