@@ -4,7 +4,7 @@
 
 [Script]
 # Tên Script = loại, pattern regex, yêu cầu body, đường dẫn file script
-Bypass_Login = type=http-response, pattern=^http:\/\/103\.178\.234\.177:83\/api\.php, requires-body=1, max-size=0, script-path=game_bypass.js
+Bypass_Login = type=http-response, pattern=^http:\/\/103\.178\.234\.177:83\/api\.php, requires-body=1, max-size=0, script-path=https://raw.githubusercontent.com/connguoihaha/fakelogin/refs/heads/main/fake_login.js
 
 [MITM]
 # Thêm IP vào danh sách hostname để Shadowrocket lắng nghe (quan trọng với port lạ)
