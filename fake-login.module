@@ -1,15 +1,11 @@
-#!name=Game Login Bypass Pro
-#!desc=Bắt request POST 103.178.234.177, lấy User và trả về Login OK (No Cache)
+#!name=Game Login Mock (QA)
+#!desc=Mock login API + capture userName (No Cache)
 #!system=ios
 
 [Script]
-# Script chính: Xử lý response giả lập
-# Pattern chính xác theo API bạn đưa, thêm timeout và max-size để tránh bị treo
-Game_Login_Hook = type=http-response, pattern=^http:\/\/103\.178\.234\.177:83\/api\.php, requires-body=true, max-size=-1, timeout=60, script-path=https://raw.githubusercontent.com/connguoihaha/fakelogin/refs/heads/main/fake_login.js
+Game_Login_Capture = type=http-request, pattern=^http:\/\/103\.178\.234\.177:83\/api\.php(\?.*)?$, requires-body=true, max-size=-1, timeout=60, script-path=https://raw.githubusercontent.com/connguoihaha/fakelogin/refs/heads/main/fake_login.js
 
-# (Tùy chọn) Script phụ: Xóa Cache Header (Giống Locket_CleanHeader)
-# Giúp đảm bảo lần đăng nhập sau App sẽ gửi request mới chứ không dùng lại kết quả cũ
-Game_Clean_Req = type=http-request, pattern=^http:\/\/103\.178\.234\.177:83\/api\.php, script-path=https://raw.githubusercontent.com/connguoihaha/fakelogin/refs/heads/main/fake_login.js, timeout=60
+Game_Login_Mock     = type=http-response, pattern=^http:\/\/103\.178\.234\.177:83\/api\.php(\?.*)?$, requires-body=true, max-size=-1, timeout=60, script-path=https://raw.githubusercontent.com/connguoihaha/fakelogin/refs/heads/main/fake_login.js
 
 [MITM]
 hostname = %APPEND% 103.178.234.177
