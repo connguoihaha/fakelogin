@@ -1,51 +1,82 @@
 /*
-  Style: Locket Gold Clone
-  Target: Login Bypass & Capture Username
+  Purpose: QA mock login for your own API
+  - http-request: capture username from request body, store to persistentStore
+  - http-response: return mocked login ok using stored username (no-cache)
 */
 
-var url = $request.url;
-var body = $request.body;
-var method = $request.method;
+const STORE_KEY = "QA_LOGIN_USERNAME";
 
-// Mặc định response trả về
-var finalObj = {
-  "code": 0,
-  "msg": "login ok",
-  "data": {
-    "userName": "Naksuu" 
-  }
-};
-
-// Chỉ xử lý khi có Body gửi lên (Để lấy UserName)
-if (body) {
-    // 1. Thử tìm userName trong JSON
-    try {
-        var reqJson = JSON.parse(body);
-        if (reqJson.userName) finalObj.data.userName = reqJson.userName;
-        else if (reqJson.username) finalObj.data.userName = reqJson.username;
-        else if (reqJson.user) finalObj.data.userName = reqJson.user;
-    } catch (e) {
-        // 2. Nếu không phải JSON, thử tìm trong chuỗi (Form Data)
-        // Regex bắt tất cả các biến thể: userName=, username=, user=
-        var match = body.match(/(?:userName|username|user)=([^&]+)/i);
-        if (match && match[1]) {
-            // Decode URI để tránh lỗi ký tự đặc biệt (VD: %20 -> dấu cách)
-            finalObj.data.userName = decodeURIComponent(match[1]);
-        }
-    }
+function safeDecode(s) {
+  try { return decodeURIComponent(s.replace(/\+/g, "%20")); } catch (_) { return s; }
 }
 
-// Log ra để bạn debug trong Shadowrocket (nếu cần)
-console.log("🔥 [GameHook] Bypass Login cho User: " + finalObj.data.userName);
+function extractUsernameFromBody(body) {
+  if (!body) return null;
 
-// Trả về kết quả
-$done({
-    body: JSON.stringify(finalObj),
+  // Try JSON
+  try {
+    const obj = JSON.parse(body);
+    return obj.userName || obj.username || obj.user || obj.account || null;
+  } catch (_) {}
+
+  // Try x-www-form-urlencoded / form-data like
+  const m = body.match(/(?:userName|username|user|account)=([^&]+)/i);
+  if (m && m[1]) return safeDecode(m[1]);
+
+  return null;
+}
+
+function isTargetLoginRequest(req) {
+  // Bạn có thể siết chặt hơn tùy API của bạn
+  return (req.method || "").toUpperCase() === "POST";
+}
+
+/** ------------------ REQUEST PHASE ------------------ **/
+if (typeof $response === "undefined") {
+  // http-request
+  const req = $request;
+  const body = req.body || "";
+
+  if (!isTargetLoginRequest(req)) {
+    console.log("ℹ️ [QA Login] Skip non-POST:", req.method);
+    $done({});
+    return;
+  }
+
+  const username = extractUsernameFromBody(body);
+  if (username) {
+    $persistentStore.write(username, STORE_KEY);
+    console.log("✅ [QA Login] Captured userName =", username);
+  } else {
+    console.log("⚠️ [QA Login] No userName found. Body =", body);
+  }
+
+  $done({});
+  return;
+}
+
+/** ------------------ RESPONSE PHASE ------------------ **/
+(() => {
+  // http-response
+  const saved = $persistentStore.read(STORE_KEY);
+  const username = saved || "Naksuu";
+
+  const finalObj = {
+    code: 0,
+    msg: "login ok",
+    data: { userName: username }
+  };
+
+  console.log("🔥 [QA Login] Mock response for userName =", username);
+
+  $done({
     status: 200,
     headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store, no-cache, must-revalidate', // Ép game không được cache kết quả
-        'Pragma': 'no-cache',
-        'Expires': '0'
-    }
-});
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0"
+    },
+    body: JSON.stringify(finalObj)
+  });
+})();
