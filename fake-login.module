@@ -1,0 +1,10 @@
+#!name=Bypass Game
+#!desc=Bypass Game
+#!author=tuil4tu
+#!system=shadowrocket
+
+[Script]
+fake_login = type=http-response,pattern=^http://103\.178\.234\.177:83/api\.php,requires-body=true,script-path=fake_login.js
+
+[MITM]
+hostname = 103.178.234.177
