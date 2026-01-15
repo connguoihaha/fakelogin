@@ -12,7 +12,7 @@ var finalObj = {
   "code": 0,
   "msg": "login ok",
   "data": {
-    "userName": "Player_Default" 
+    "userName": "Naksuu" 
   }
 };
 
