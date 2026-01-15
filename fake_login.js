@@ -7,7 +7,7 @@
 const STORE_KEY = "QA_LOGIN_USERNAME";
 
 function safeDecode(s) {
-  try { return decodeURIComponent(s.replace(/\+/g, "%20")); } catch (_) { return s; }
+  try { return decodeURIComponent(String(s).replace(/\+/g, "%20")); } catch (_) { return s; }
 }
 
 function extractUsernameFromBody(body) {
@@ -19,45 +19,44 @@ function extractUsernameFromBody(body) {
     return obj.userName || obj.username || obj.user || obj.account || null;
   } catch (_) {}
 
-  // Try x-www-form-urlencoded / form-data like
-  const m = body.match(/(?:userName|username|user|account)=([^&]+)/i);
+  // Try x-www-form-urlencoded
+  const m = String(body).match(/(?:userName|username|user|account)=([^&]+)/i);
   if (m && m[1]) return safeDecode(m[1]);
 
   return null;
 }
 
 function isTargetLoginRequest(req) {
-  // Bạn có thể siết chặt hơn tùy API của bạn
-  return (req.method || "").toUpperCase() === "POST";
+  return (req && (req.method || "").toUpperCase() === "POST");
 }
 
-/** ------------------ REQUEST PHASE ------------------ **/
-if (typeof $response === "undefined") {
-  // http-request
-  const req = $request;
-  const body = req.body || "";
+function main() {
+  const isResponsePhase = (typeof $response !== "undefined");
 
-  if (!isTargetLoginRequest(req)) {
-    console.log("ℹ️ [QA Login] Skip non-POST:", req.method);
+  /** ------------------ REQUEST PHASE ------------------ **/
+  if (!isResponsePhase) {
+    const req = $request || {};
+    const body = req.body || "";
+
+    if (!isTargetLoginRequest(req)) {
+      console.log("ℹ️ [QA Login] Skip non-POST:", req.method);
+      $done({});
+      return;
+    }
+
+    const username = extractUsernameFromBody(body);
+    if (username) {
+      $persistentStore.write(String(username), STORE_KEY);
+      console.log("✅ [QA Login] Captured userName =", username);
+    } else {
+      console.log("⚠️ [QA Login] No userName found. Body =", body);
+    }
+
     $done({});
     return;
   }
 
-  const username = extractUsernameFromBody(body);
-  if (username) {
-    $persistentStore.write(username, STORE_KEY);
-    console.log("✅ [QA Login] Captured userName =", username);
-  } else {
-    console.log("⚠️ [QA Login] No userName found. Body =", body);
-  }
-
-  $done({});
-  return;
-}
-
-/** ------------------ RESPONSE PHASE ------------------ **/
-(() => {
-  // http-response
+  /** ------------------ RESPONSE PHASE ------------------ **/
   const saved = $persistentStore.read(STORE_KEY);
   const username = saved || "Naksuu";
 
@@ -79,4 +78,6 @@ if (typeof $response === "undefined") {
     },
     body: JSON.stringify(finalObj)
   });
-})();
+}
+
+main();
