@@ -4,7 +4,7 @@
  */
 
 let body = $request.body;
-let userName = "dev_test"; // Giá trị fallback
+let userName = "Naksuu"; // Giá trị fallback
 
 // 1. Cố gắng lấy userName từ Payload gửi đi
 if (body) {
