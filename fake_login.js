@@ -34,7 +34,7 @@ if (!userName) {
 
 // CÁCH 3: Fallback (Nếu vẫn không lấy được thì dùng tên mặc định để test)
 if (!userName) {
-    userName = "Player123"; 
+    userName = "Naksuu"; 
     console.log("❌ [DEBUG] Failed to parse. Using default: " + userName);
 }
 
