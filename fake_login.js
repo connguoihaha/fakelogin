@@ -1,52 +1,51 @@
-/**
- * Script: game_bypass_v2.js
- * Logic: Chỉ can thiệp khi là POST và tìm thấy userName
- */
+/*
+  Style: Locket Gold Clone
+  Target: Login Bypass & Capture Username
+*/
 
-const method = $request.method;
-const body = $request.body;
+var url = $request.url;
+var body = $request.body;
+var method = $request.method;
 
-// 1. CHỐT CHẶN: Nếu không phải POST hoặc không có body, bỏ qua ngay lập tức!
-// Việc này giúp script không chạy lung tung khi bật app (tránh bắt nhầm request GET/OPTIONS)
-if (method !== 'POST' || !body) {
-    console.log(`[PASS] Method: ${method} - Skipping...`);
-    $done({}); // Trả về nguyên bản, không chỉnh sửa gì
-} else {
-    // 2. XỬ LÝ: Chỉ chạy khi đã qua chốt chặn trên
-    let userName = null;
+// Mặc định response trả về
+var finalObj = {
+  "code": 0,
+  "msg": "login ok",
+  "data": {
+    "userName": "Player_Default" 
+  }
+};
 
+// Chỉ xử lý khi có Body gửi lên (Để lấy UserName)
+if (body) {
+    // 1. Thử tìm userName trong JSON
     try {
-        // Thử parse JSON
-        let reqData = JSON.parse(body);
-        if (reqData.userName) userName = reqData.userName;
-        else if (reqData.username) userName = reqData.username;
+        var reqJson = JSON.parse(body);
+        if (reqJson.userName) finalObj.data.userName = reqJson.userName;
+        else if (reqJson.username) finalObj.data.userName = reqJson.username;
+        else if (reqJson.user) finalObj.data.userName = reqJson.user;
     } catch (e) {
-        // Thử parse Form Data
-        let match = body.match(/userName=([^&]+)/i);
-        if (match && match[1]) userName = decodeURIComponent(match[1]);
-    }
-
-    // 3. QUYẾT ĐỊNH CUỐI CÙNG
-    if (userName) {
-        // Nếu tìm thấy username -> Chỉnh sửa Response
-        console.log(`[SUCCESS] Found userName: ${userName}. Modifying response.`);
-        
-        let newResponse = {
-            "code": 0,
-            "msg": "login ok",
-            "data": {
-                "userName": userName
-            }
-        };
-
-        $done({
-            body: JSON.stringify(newResponse),
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    } else {
-        // Nếu là POST nhưng không tìm ra username (request rác) -> Bỏ qua
-        console.log("[FAIL] POST request but no userName found. Returning original.");
-        $done({});
+        // 2. Nếu không phải JSON, thử tìm trong chuỗi (Form Data)
+        // Regex bắt tất cả các biến thể: userName=, username=, user=
+        var match = body.match(/(?:userName|username|user)=([^&]+)/i);
+        if (match && match[1]) {
+            // Decode URI để tránh lỗi ký tự đặc biệt (VD: %20 -> dấu cách)
+            finalObj.data.userName = decodeURIComponent(match[1]);
+        }
     }
 }
+
+// Log ra để bạn debug trong Shadowrocket (nếu cần)
+console.log("🔥 [GameHook] Bypass Login cho User: " + finalObj.data.userName);
+
+// Trả về kết quả
+$done({
+    body: JSON.stringify(finalObj),
+    status: 200,
+    headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate', // Ép game không được cache kết quả
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    }
+});
