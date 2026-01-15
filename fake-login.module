@@ -1,10 +1,11 @@
-#!name=Bypass Game
-#!desc=Bypass Game
-#!author=tuil4tu
-#!system=shadowrocket
+#!name=Game Login Bypass
+#!desc=Bắt request POST 103.178.234.177 và trả về Login OK kèm UserName
+#!system=ios
 
 [Script]
-fake_login = type=http-response,pattern=^http://103\.178\.234\.177:83/api\.php,requires-body=true,script-path=fake_login.js
+# Tên Script = loại, pattern regex, yêu cầu body, đường dẫn file script
+Bypass_Login = type=http-response, pattern=^http:\/\/103\.178\.234\.177:83\/api\.php, requires-body=1, max-size=0, script-path=game_bypass.js
 
 [MITM]
-hostname = 103.178.234.177
+# Thêm IP vào danh sách hostname để Shadowrocket lắng nghe (quan trọng với port lạ)
+hostname = %APPEND% 103.178.234.177
