@@ -1,25 +1,44 @@
 /**
- * Script: game_bypass.js
- * Action: Lấy userName từ Request Body và giả lập Response Login thành công.
+ * Script: game_bypass.js (Phiên bản Debug)
  */
 
-let body = $request.body;
-let userName = "Naksuu"; // Giá trị fallback
+let body = $request.body || "";
+let userName = null;
 
-// 1. Cố gắng lấy userName từ Payload gửi đi
-if (body) {
-    try {
-        // Thử parse JSON
-        let reqData = JSON.parse(body);
-        if (reqData.userName) userName = reqData.userName;
-    } catch (e) {
-        // Thử parse Form Data (key=value)
-        let match = body.match(/userName=([^&]+)/);
-        if (match && match[1]) userName = decodeURIComponent(match[1]);
+// GHI LOG: Để xem thực tế game gửi cái gì lên (Xem trong Config -> Diagnostics/Log)
+console.log("⚠️ [DEBUG] Raw Body: " + body);
+
+// CÁCH 1: Thử phân tích dạng JSON
+try {
+    let reqData = JSON.parse(body);
+    // Tìm key có thể là tên đăng nhập (thường là userName, username, uName, account...)
+    if (reqData.userName) userName = reqData.userName;
+    else if (reqData.username) userName = reqData.username;
+    else if (reqData.user) userName = reqData.user;
+    
+    console.log("✅ [DEBUG] Parsed via JSON: " + userName);
+} catch (e) {
+    // Không phải JSON
+}
+
+// CÁCH 2: Thử phân tích dạng Form (key=value) hoặc Text
+if (!userName) {
+    // Regex tìm chuỗi 'userName=...' hoặc 'username=...' bất chấp hoa thường
+    // Giải mã: username=abc%20def -> abc def
+    let match = body.match(/(?:userName|username|user)=([^&]+)/i);
+    if (match && match[1]) {
+        userName = decodeURIComponent(match[1]);
+        console.log("✅ [DEBUG] Parsed via Regex: " + userName);
     }
 }
 
-// 2. Tạo Response giả lập
+// CÁCH 3: Fallback (Nếu vẫn không lấy được thì dùng tên mặc định để test)
+if (!userName) {
+    userName = "Player123"; 
+    console.log("❌ [DEBUG] Failed to parse. Using default: " + userName);
+}
+
+// Tạo Response giả
 let mockResponse = {
     "code": 0,
     "msg": "login ok",
@@ -28,7 +47,6 @@ let mockResponse = {
     }
 };
 
-// 3. Trả về kết quả
 $done({
     body: JSON.stringify(mockResponse),
     status: 200,
